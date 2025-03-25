@@ -1,0 +1,418 @@
+openapi: 3.0.0
+servers:
+  - url: http://localhost:8093
+    description: Local dev
+  - url: https://api.example.com
+    description: Production
+security:
+  - QAECYAuth: []
+paths:
+  /blob/upload:
+    post:
+      operationId: BlobUpload
+      summary: Upload a file for processing by the pipelines
+      tags:
+        - BLOB Writer
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/FileUploadDto"
+      responses:
+        '201':
+          description: File successfully uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "report.pdf was successfully uploaded to project ffd5c559-1821-4e8c-a956-08f61f352e3b!"
+  /assistant/wake-up:
+    get:
+      summary: Trigger the service to wake up.
+      tags:
+        - Assistant
+      operationId: AssistantWakeUp
+      responses:
+        "200":
+          description: ""
+  /assistant/warm-up:
+    post:
+      summary: Preload the knowledge base for the requested project.
+      tags:
+        - Assistant
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      operationId: AssistantWarmUp
+      responses:
+        "200":
+          description: ""
+  /assistant/qa-text:
+    post:
+      operationId: AssistantQAText
+      summary: Performs QA against the knowledge base.
+      tags:
+        - Assistant
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SearchDto"
+      responses:
+        '200':
+          description: ""
+  /assistant/search:
+    post:
+      operationId: AssistantSearch
+      summary: Performs search against the knowledge base, involving both the vector and graphdb database.
+      tags:
+        - Assistant
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SearchDto"
+      responses:
+        '200':
+          description: ""
+  /assistant/graphdb/query:
+    post:
+      operationId: AssistantGraphDBQuery
+      summary: Performs a SPARQL query to the graph database.
+      tags:
+        - Assistant
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/QueryDto"
+      responses:
+        '200':
+          description: ""
+  /assistant/vectordb/search:
+    post:
+      operationId: AssistantVectorDBSearch
+      summary: Performs search against the vector database.
+      tags:
+        - Assistant
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/VectorSearchDto"
+      responses:
+        '200':
+          description: ""
+  /knowledge/wake-up:
+    get:
+      summary: Trigger the service to wake up.
+      tags:
+        - Knowledge
+      operationId: KnowledgeWakeUp
+      responses:
+        "200":
+          description: ""
+  /knowledge/write-documents:
+    post:
+      summary: Writes RDF documents to the knowledge base (graph and vector database).
+      tags:
+        - Knowledge
+      operationId: KnowledgeWriteDocuments
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WriteDocumentsDto"
+      responses:
+        "200":
+          description: ""
+  /knowledge/remove-documents:
+    post:
+      summary: Remove documents and/or extracted information.
+      tags:
+        - Knowledge
+      operationId: KnowledgeRemoveDocuments
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoveDocumentsDto"
+      responses:
+        "200":
+          description: ""
+  /knowledge/monitor-process:
+    post:
+      summary: Monitor a running process.
+      tags:
+        - Knowledge
+      operationId: KnowledgeMonitorProcess
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitorProcessDto"
+      responses:
+        "200":
+          description: ""
+  /knowledge/vectordb/embeddings-wake-up:
+    get:
+      summary: Wake up the serverless remote service for vector embeddings (if needed).
+      tags:
+        - Knowledge
+      operationId: KnowledgeEmbeddingsWakeUp
+      responses:
+        "200":
+          description: ""
+  /knowledge/vectordb/embeddings-endpoint-status:
+    get:
+      summary: Check the status of the serverless remote service for vector embeddings.
+      tags:
+        - Knowledge
+      operationId: KnowledgeEmbeddingsEndointStatus
+      responses:
+        "200":
+          description: ""
+  /knowledge/vectordb/embeddings-create-index:
+    post:
+      summary: Create an index for the vector database.
+      tags:
+        - Knowledge
+      operationId: KnowledgeEmbeddingsCreateIndex
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+info:
+  title: QAECY APIs
+  description: Handles all ingress and egress of data to/from the QAECY pipelines + calls to the agent.
+  version: "1.0"
+  contact: {}
+tags: []
+components:
+  schemas:
+    FileUploadDto:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+          description: File to upload
+        filename:
+          type: string
+          description: Full file path as represented in host system
+        customMetadata:
+          type: string
+          description: Any relevant custom metadata from the host system formatted as stringified JSON
+      required:
+        - file
+        - filename
+    VectorSearchDto:
+      type: object
+      properties:
+        question:
+          type: string
+          description: Search query
+        stream:
+          type: boolean
+          description: Stream response?
+          default: true
+        constraints:
+          type: array
+          items:
+            type: string
+          description: Description missing
+          default: []
+        limit:
+          type: number
+          description: Number of results included
+          default: 20
+        threshold:
+          type: number
+          description: Description missing
+          default: 70
+        useHypothesis:
+          type: boolean
+          description: Description missing
+          default: false
+        queryType:
+          type: string
+          description: Description missing
+          default: vector
+      required:
+        - question
+    SearchDto:
+      allOf:
+        - $ref: '#/components/schemas/VectorSearchDto'
+        - type: object
+          properties:
+            hops:
+              type: number
+              description: Description missing
+              default: 0
+    QueryDto:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The query
+      required:
+        - query
+    RemoveDocumentsDto:
+      type: object
+      properties:
+        fileNames:
+          type: array
+          items:
+            type: string
+          description: Option1 - specify by file names
+          default: []
+        remotePaths:
+          type: array
+          items:
+            type: string
+          description: Option2 - specify by remote paths
+          default: []
+        removeGraphs:
+          type: boolean
+          description: Remove facts from graph database?
+          default: true
+        removeVectors:
+          type: boolean
+          description: Remove embeddings from vector database?
+          default: true
+        removeRaw:
+          type: boolean
+          description: Remove raw BLOBs?
+          default: true
+        removeProcessed:
+          type: boolean
+          description: Remove processed BLOBs?
+          default: true
+        deleteAll:
+          type: boolean
+          description: Description missing
+          default: false
+        force:
+          type: boolean
+          description: Description missing
+          default: false
+    WriteDocumentsDto:
+      type: object
+      properties:
+        fileNames:
+          type: array
+          items:
+            type: string
+          description: Only write specified fileNames
+          default: []
+        includeUUIDs:
+          type: array
+          items:
+            type: string
+          description: Document UUIDs to be included
+          default: []
+        excludeUUIDs:
+          type: array
+          items:
+            type: string
+          description: Document UUIDs to be excluded
+          default: []
+        force:
+          type: boolean
+          description: Removes all existing data and performs a full reload
+          default: false
+    MonitorProcessDto:
+      type: object
+      properties:
+        processId:
+          type: string
+          description: The process id
+      required:
+        - processId
+  securitySchemes:
+    QAECYAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        🔒 Retrieve the token from `/v1/accounts:signInWithPassword`.
+        
+        **Example Request**:
+        ```
+        curl -X POST "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{"email":"user@example.com","password":"password","returnSecureToken":true}'
+        ```
+        **Dev mode**
+        Use http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=API_KEY
