@@ -1,8 +1,14 @@
 openapi: 3.0.0
+info:
+  title: Cue APIs
+  description: Handles all ingress and egress of data to/from the QAECY Cue pipelines + calls to the agent.
+  version: "1.0"
+  contact: {}
+tags: []
 servers:
   - url: http://localhost:8093
     description: Local dev
-  - url: https://api.example.com
+  - url: https://api.qaecy.com
     description: Production
 security:
   - QAECYAuth: []
@@ -253,12 +259,6 @@ paths:
       responses:
         "200":
           description: ""
-info:
-  title: QAECY APIs
-  description: Handles all ingress and egress of data to/from the QAECY pipelines + calls to the agent.
-  version: "1.0"
-  contact: {}
-tags: []
 components:
   schemas:
     FileUploadDto:
