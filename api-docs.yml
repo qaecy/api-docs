@@ -8,7 +8,7 @@ tags: []
 servers:
   - url: http://localhost:8093
     description: Local dev
-  - url: https://api.qaecy.com
+  - url: https://accessors-api-gateway-ueyeemwf2a-oa.a.run.app
     description: Production
 security:
   - QAECYAuth: []
