@@ -335,37 +335,37 @@ components:
           type: array
           items:
             type: string
-          description: Option1 - specify by file names
+          description: Remove files with these names
           default: []
         remotePaths:
           type: array
           items:
             type: string
-          description: Option2 - specify by remote paths
+          description: Remove files with these blob storage paths
           default: []
         removeGraphs:
           type: boolean
-          description: Remove facts from graph database?
+          description: Remove all the associated (also derived) information from the knowledge graph
           default: true
         removeVectors:
           type: boolean
-          description: Remove embeddings from vector database?
+          description: Remove all the associated vector embeddings from the vector store
           default: true
         removeRaw:
           type: boolean
-          description: Remove raw BLOBs?
+          description: Remove the raw blob files
           default: true
         removeProcessed:
           type: boolean
-          description: Remove processed BLOBs?
+          description: Remove all the processed / derivative files that where produced from the files
           default: true
         deleteAll:
           type: boolean
-          description: Description missing
+          description: Bypass other settings and delete all raw and processed files as well as knowledge graph and vector store data
           default: false
         force:
           type: boolean
-          description: Description missing
+          description: Remove locks (if any) to force the deletion process
           default: false
     WriteDocumentsDto:
       type: object
