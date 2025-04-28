@@ -259,6 +259,85 @@ paths:
       responses:
         "200":
           description: ""
+  /triplestore/query:
+    post:
+      operationId: TriplestoreQuery
+      summary: Performs a SPARQL query to the graph database.
+      tags:
+        - Triplestore
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/QueryDto"
+      responses:
+        '200':
+          description: SPARQL query results
+          content:
+            application/sparql-results+json:
+              schema:
+                type: object
+                properties:
+                  head:
+                    type: object
+                    properties:
+                      vars:
+                        type: array
+                        items:
+                          type: string
+                  results:
+                    type: object
+                    properties:
+                      bindings:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                                enum: [uri, literal, bnode]
+                              value:
+                                type: string
+              example:
+                head:
+                  vars: ["s", "p", "o"]
+                results:
+                  bindings:
+                    - s: {type: "uri", value: "https://cue.qaecy.com/r/3715f1eb-bfa6-44b7-99ee-932f25f65d68"}
+                      p: {type: "uri", value: "https://dev.qaecy.com/ont#value"}
+                      o: {type: "literal", value: "John Doe"}
+            application/ld+json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    "@id":
+                      type: string
+                    "@type":
+                      type: string
+                    "@context":
+                      type: object
+              example:
+                - "@context":
+                    "@base": "https://cue.qaecy.com/r/"
+                    "qcy": "https://dev.qaecy.com/ont#"
+                    "qcy-e": "https://dev.qaecy.com/enum#"
+                  "@id": "3715f1eb-bfa6-44b7-99ee-932f25f65d68"
+                  "@type": "qcy:EntityMention"
+                  "qcy:value": "John Doe"
+                  "qcy:hasEntityCategory":
+                    "@id": "qcy-e:Person"
 components:
   schemas:
     FileUploadDto:
