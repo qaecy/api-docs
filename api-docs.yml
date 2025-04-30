@@ -307,6 +307,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: includeSchema
+          in: query
+          description: Include schema in the response
+          required: false
+          default: false
+          schema:
+            type: boolean
       responses:
         '200':
           $ref: "#/components/responses/RDF"
@@ -326,6 +333,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: includeSchema
+          in: query
+          description: Include schema in the response
+          required: false
+          default: false
+          schema:
+            type: boolean
       responses:
         '200':
           $ref: "#/components/responses/RDF"
