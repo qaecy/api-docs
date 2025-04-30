@@ -291,7 +291,7 @@ paths:
       responses:
         '200':
           $ref: "#/components/responses/SPARQL"
-  /data-views/resource/:id:
+  /data-views/resource/{resourceID}:
     get:
       experimental: true
       summary: Exposes a view of the particular resource (file location/content, fragment, entity). The default response mime type is JSON-LD but the endpoint supports content negotiation by setting the Accept header.
@@ -301,6 +301,12 @@ paths:
         - Data views
       operationId: DataViewsResource
       parameters:
+        - name: resourceID
+          in: path
+          description: UUID of the resource
+          required: true
+          schema:
+            type: string
         - name: x-project-id
           in: header
           description: Project ID
@@ -317,7 +323,7 @@ paths:
       responses:
         '200':
           $ref: "#/components/responses/RDF"
-  /data-views/derived/:id:
+  /data-views/derived/{sourceID}:
     get:
       experimental: true
       summary: Exposes a view of all facts that are derived from the input document. Id is either the UUID of the file location or content node. The default response mime type is JSON-LD but the endpoint supports content negotiation by setting the Accept header.
@@ -327,6 +333,12 @@ paths:
         - Data views
       operationId: DataViewsDerived
       parameters:
+        - name: sourceID
+          in: path
+          description: Source file identified by its location content UUID
+          required: true
+          schema:
+            type: string
         - name: x-project-id
           in: header
           description: Project ID
