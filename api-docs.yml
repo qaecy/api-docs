@@ -10,7 +10,7 @@ tags:
   - name: Assistant
     description: Handles interactions with the Cue assistant
   - name: Knowledge
-    description: Handles writing of knowledge to the databases
+    description: Handles writing and deleting of knowledge to the databases
   - name: Triplestore
     description: Exposes the project triplestore endpoints for querying, SHACL checks etc.
   - name: Data views
@@ -75,6 +75,18 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: string
+                  description: The project ID (will soon be removed and read from headers)
+              required:
+                - projectId
       operationId: AssistantWarmUp
       responses:
         "200":
@@ -97,32 +109,10 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/SearchDto"
+              $ref: "#/components/schemas/ChatDto"
       responses:
         '200':
-          description: ""
-  /assistant/search:
-    post:
-      operationId: AssistantSearch
-      summary: Performs search against the knowledge base, involving both the vector and graphdb database.
-      tags:
-        - Assistant
-      parameters:
-        - name: x-project-id
-          in: header
-          description: Project ID
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              $ref: "#/components/schemas/SearchDto"
-      responses:
-        '200':
-          description: ""
+          description: "The response is a streamed json file, including the sources."
   /assistant/graphdb/query:
     post:
       operationId: AssistantGraphDBQuery
@@ -176,28 +166,6 @@ paths:
       responses:
         "200":
           description: ""
-  /knowledge/write-documents:
-    post:
-      summary: Writes RDF documents to the knowledge base (graph and vector database).
-      tags:
-        - Knowledge
-      operationId: KnowledgeWriteDocuments
-      parameters:
-        - name: x-project-id
-          in: header
-          description: Project ID
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WriteDocumentsDto"
-      responses:
-        "200":
-          description: ""
   /knowledge/remove-documents:
     post:
       summary: Remove documents and/or extracted information.
@@ -217,55 +185,6 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/RemoveDocumentsDto"
-      responses:
-        "200":
-          description: ""
-  /knowledge/monitor-process:
-    post:
-      summary: Monitor a running process.
-      tags:
-        - Knowledge
-      operationId: KnowledgeMonitorProcess
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MonitorProcessDto"
-      responses:
-        "200":
-          description: ""
-  /knowledge/vectordb/embeddings-wake-up:
-    get:
-      summary: Wake up the serverless remote service for vector embeddings (if needed).
-      tags:
-        - Knowledge
-      operationId: KnowledgeEmbeddingsWakeUp
-      responses:
-        "200":
-          description: ""
-  /knowledge/vectordb/embeddings-endpoint-status:
-    get:
-      summary: Check the status of the serverless remote service for vector embeddings.
-      tags:
-        - Knowledge
-      operationId: KnowledgeEmbeddingsEndointStatus
-      responses:
-        "200":
-          description: ""
-  /knowledge/vectordb/embeddings-create-index:
-    post:
-      summary: Create an index for the vector database.
-      tags:
-        - Knowledge
-      operationId: KnowledgeEmbeddingsCreateIndex
-      parameters:
-        - name: x-project-id
-          in: header
-          description: Project ID
-          required: true
-          schema:
-            type: string
       responses:
         "200":
           description: ""
@@ -379,65 +298,92 @@ components:
         question:
           type: string
           description: Search query
-        stream:
-          type: boolean
-          description: Stream response?
-          default: true
-        constraints:
-          type: array
-          items:
-            type: string
-          description: Description missing
-          default: []
+        projectId:
+          type: string
+          description: The project id (will soon be removed and read from headers)
+        target:
+          type: string
+          description: The target collection, out of the currently supported ones (page_summaries, document_summaries)
+          default: page_summaries
         limit:
           type: number
           description: Number of results included
           default: 20
-        threshold:
-          type: number
-          description: Description missing
-          default: 70
-        useHypothesis:
-          type: boolean
-          description: Description missing
-          default: false
         queryType:
           type: string
-          description: Description missing
+          description: Perform vector-only (vector) or hybrid (hybrid) search which includes fts
           default: vector
+        identifiers:
+          type: array
+          items:
+            type: string
+          description: The identifiers of the documents that the search should be constrained to
       required:
         - question
-    SearchDto:
-      allOf:
-        - $ref: '#/components/schemas/VectorSearchDto'
-        - type: object
-          properties:
-            hops:
-              type: number
-              description: Description missing
-              default: 0
+        - projectId
+    ChatDto:
+      type: object
+      properties:
+        prompt:
+          type: string
+          description: Chat prompt
+        projectId:
+          type: string
+          description: The project id (will soon be removed and read from headers)
+        target:
+          type: string
+          description: The target vector collection, out of the currently supported ones (page_summaries, document_summaries)
+          default: page_summaries
+        limit:
+          type: number
+          description: Number of the vector results included in the retrieval
+          default: 20
+        queryType:
+          type: string
+          description: Perform vector-only (vector) or hybrid (hybrid) search which includes fts
+          default: vector
+        identifiers:
+          type: array
+          items:
+            type: string
+          description: The identifiers of the documents that the search should be constrained to
+      required:
+        - prompt
+        - projectId
     QueryDto:
       type: object
       properties:
         query:
           type: string
           description: The query
+        projectId:
+          type: string
+          description: The project id (will soon be removed and read from headers)
+        identifiers:
+          type: array
+          items:
+            type: string
+          description: The identifiers of the documents that the query should be constrained to
       required:
         - query
+        - projectId
     RemoveDocumentsDto:
       type: object
       properties:
+        projectId:
+          type: string
+          description: The project id (will soon be removed and read from headers)
         fileNames:
           type: array
           items:
             type: string
-          description: Remove files with these names
+          description: Array containing the list of filenames to be deleted, prefixed with their full path
           default: []
-        remotePaths:
+        blobNames:
           type: array
           items:
             type: string
-          description: Remove files with these blob storage paths
+          description: Array containing the list of blobs to be deleted, prefixed with the projectId
           default: []
         removeGraphs:
           type: boolean
@@ -459,43 +405,9 @@ components:
           type: boolean
           description: Bypass other settings and delete all raw and processed files as well as knowledge graph and vector store data
           default: false
-        force:
-          type: boolean
-          description: Remove locks (if any) to force the deletion process
-          default: false
-    WriteDocumentsDto:
-      type: object
-      properties:
-        fileNames:
-          type: array
-          items:
-            type: string
-          description: Only write specified fileNames
-          default: []
-        includeUUIDs:
-          type: array
-          items:
-            type: string
-          description: Document UUIDs to be included
-          default: []
-        excludeUUIDs:
-          type: array
-          items:
-            type: string
-          description: Document UUIDs to be excluded
-          default: []
-        force:
-          type: boolean
-          description: Removes all existing data and performs a full reload
-          default: false
-    MonitorProcessDto:
-      type: object
-      properties:
-        processId:
-          type: string
-          description: The process id
       required:
-        - processId
+        - projectId
+        - fileNames
   responses:
     SPARQL:
       description: SPARQL query results
