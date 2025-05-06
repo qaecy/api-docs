@@ -54,6 +54,7 @@ paths:
                     type: string
               example:
                 message: "report.pdf was successfully uploaded to project ffd5c559-1821-4e8c-a956-08f61f352e3b!"
+                uuid: 6ad3e777-87e8-56e1-8f37-d7fcf07e3f50
   /assistant/wake-up:
     get:
       summary: Trigger the service to wake up.
