@@ -130,7 +130,7 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               $ref: "#/components/schemas/QueryAssDto"
       responses:
@@ -152,7 +152,7 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               $ref: "#/components/schemas/VectorSearchDto"
       responses:
@@ -358,6 +358,7 @@ components:
           type: string
           description: The query
           default: ASK WHERE { ?s ?p ?o }
+          multiLine: true
       required:
         - query
     QueryAssDto:
@@ -366,6 +367,8 @@ components:
         query:
           type: string
           description: The query
+          default: ASK WHERE { ?s ?p ?o }
+          multiLine: true
         projectId:
           type: string
           description: The project id (will soon be removed and read from headers)
