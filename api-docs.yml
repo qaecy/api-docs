@@ -213,7 +213,6 @@ paths:
           $ref: "#/components/responses/SPARQL"
   /data-views/resource/{resourceID}:
     get:
-      experimental: true
       summary: Exposes a view of the particular resource (file location/content, fragment, entity). The default response mime type is JSON-LD but the endpoint supports content negotiation by setting the Accept header.
       description: |
         **Experimental:** This API is subject to change or removal 
@@ -237,7 +236,6 @@ paths:
           in: query
           description: Include schema in the response
           required: false
-          default: false
           schema:
             type: boolean
       responses:
@@ -245,7 +243,6 @@ paths:
           $ref: "#/components/responses/RDF"
   /data-views/derived/{sourceID}:
     get:
-      experimental: true
       summary: Exposes a view of all facts that are derived from the input document. Id is either the UUID of the file location or content node. The default response mime type is JSON-LD but the endpoint supports content negotiation by setting the Accept header.
       description: |
         **Experimental:** This API is subject to change or removal 
@@ -269,7 +266,6 @@ paths:
           in: query
           description: Include schema in the response
           required: false
-          default: false
           schema:
             type: boolean
       responses:
@@ -357,8 +353,6 @@ components:
         query:
           type: string
           description: The query
-          default: ASK WHERE { ?s ?p ?o }
-          multiLine: true
       required:
         - query
     QueryAssDto:
@@ -367,8 +361,6 @@ components:
         query:
           type: string
           description: The query
-          default: ASK WHERE { ?s ?p ?o }
-          multiLine: true
         projectId:
           type: string
           description: The project id (will soon be removed and read from headers)
