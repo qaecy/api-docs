@@ -515,7 +515,7 @@ components:
                       type: number
                       format: float
                       nullable: true
-                      description: Relevance score of the result
+                      description: Relevance score of the result (only available when reranking is set to true)
                     name:
                       type: string
                       nullable: true
