@@ -282,10 +282,23 @@ components:
           description: File to upload
         filename:
           type: string
-          description: Full file path as represented in host system
+          description: Full file path as represented in host system. If nothing is provided the name of the file is used.
         customMetadata:
           type: string
+          default: ""
           description: Any relevant custom metadata from the host system formatted as stringified JSON
+        skipLoading:
+          type: boolean
+          default: false
+          description: Whether the file should be invisible to the loading events that would normally be triggered by it
+        skipProcessing:
+          type: boolean
+          default: false
+          description: Whether the file should be invisible to the processing events that would normally be triggered by it
+        providerId:
+          type: string
+          default: ""
+          description: Necessary to distinguish duplicate files uploaded from different document systems. Reflected in file location UUIDs. Default value is an empty string.
       required:
         - file
         - filename
