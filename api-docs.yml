@@ -55,15 +55,6 @@ paths:
               example:
                 message: "report.pdf was successfully uploaded to project ffd5c559-1821-4e8c-a956-08f61f352e3b!"
                 uuid: 6ad3e777-87e8-56e1-8f37-d7fcf07e3f50
-  /assistant/wake-up:
-    get:
-      summary: Trigger the service to wake up.
-      tags:
-        - Assistant
-      operationId: AssistantWakeUp
-      responses:
-        "200":
-          description: ""
   /assistant/warm-up:
     post:
       summary: Preload the knowledge base for the requested project.
@@ -108,16 +99,16 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               $ref: "#/components/schemas/ChatDto"
       responses:
         '200':
           description: "The response is a streamed json file, including the sources."
-  /assistant/graphdb/query:
+  /assistant/search:
     post:
-      operationId: AssistantGraphDBQuery
-      summary: Performs a SPARQL query to the graph database.
+      operationId: AssistantSearch
+      summary: Performs search against the knowledge base.
       tags:
         - Assistant
       parameters:
@@ -132,41 +123,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/QueryAssDto"
+              $ref: "#/components/schemas/SearchDto"
       responses:
         '200':
-          description: ""
-  /assistant/vectordb/search:
-    post:
-      operationId: AssistantVectorDBSearch
-      summary: Performs search against the vector database.
-      tags:
-        - Assistant
-      parameters:
-        - name: x-project-id
-          in: header
-          description: Project ID
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/VectorSearchDto"
-      responses:
-        '200':
-          description: ""
-  /knowledge/wake-up:
-    get:
-      summary: Trigger the service to wake up.
-      tags:
-        - Knowledge
-      operationId: KnowledgeWakeUp
-      responses:
-        "200":
-          description: ""
+          $ref: "#/components/responses/SearchResults"
   /knowledge/remove-documents:
     post:
       summary: Remove documents and/or extracted information.
@@ -302,7 +262,7 @@ components:
       required:
         - file
         - filename
-    VectorSearchDto:
+    SearchDto:
       type: object
       properties:
         question:
@@ -311,23 +271,31 @@ components:
         projectId:
           type: string
           description: The project id (will soon be removed and read from headers)
-        target:
-          type: string
-          description: The target collection, out of the currently supported ones (page_summaries, document_summaries)
-          default: page_summaries
         limit:
           type: number
           description: Number of results included
-          default: 20
-        queryType:
-          type: string
-          description: Perform vector-only (vector) or hybrid (hybrid) search which includes fts
-          default: vector
+          default: 10
+        doRerank:
+          type: boolean
+          description: Perform search results reranking
+          default: true
+        useGraph:
+          type: boolean
+          description: Perform search against the graph entities
+          default: true
+        useVector:
+          type: boolean
+          description: Perform search against the vector database collection
+          default: true
+        target:
+          enum: [page_summaries, document_summaries]
+          description: The target vector collection to search against, out of the currently supported ones (page_summaries, document_summaries)
+          default: page_summaries
         identifiers:
           type: array
           items:
             type: string
-          description: The identifiers of the documents that the search should be constrained to
+          description: (Will be active again soon) The identifiers of the documents that the search should be constrained to
       required:
         - question
         - projectId
@@ -340,23 +308,31 @@ components:
         projectId:
           type: string
           description: The project id (will soon be removed and read from headers)
-        target:
-          type: string
-          description: The target vector collection, out of the currently supported ones (page_summaries, document_summaries)
-          default: page_summaries
         limit:
           type: number
-          description: Number of the vector results included in the retrieval
-          default: 20
-        queryType:
-          type: string
-          description: Perform vector-only (vector) or hybrid (hybrid) search which includes fts
-          default: vector
+          description: Number of results included
+          default: 10
+        doRerank:
+          type: boolean
+          description: Perform search results reranking
+          default: true
+        useGraph:
+          type: boolean
+          description: Perform search against the graph entities
+          default: true
+        useVector:
+          type: boolean
+          description: Perform search against the vector database collection
+          default: true
+        target:
+          enum: [page_summaries, document_summaries]
+          description: The target vector collection to search against, out of the currently supported ones (page_summaries, document_summaries)
+          default: page_summaries
         identifiers:
           type: array
           items:
             type: string
-          description: The identifiers of the documents that the search should be constrained to
+          description: (Will be active again soon) The identifiers of the documents that the search should be constrained to
       required:
         - prompt
         - projectId
@@ -368,23 +344,6 @@ components:
           description: The query
       required:
         - query
-    QueryAssDto:
-      type: object
-      properties:
-        query:
-          type: string
-          description: The query
-        projectId:
-          type: string
-          description: The project id (will soon be removed and read from headers)
-        identifiers:
-          type: array
-          items:
-            type: string
-          description: The identifiers of the documents that the query should be constrained to
-      required:
-        - query
-        - projectId
     RemoveDocumentsDto:
       type: object
       properties:
@@ -528,7 +487,61 @@ components:
             "<https://cue.qaecy.com/r/3715f1eb-bfa6-44b7-99ee-932f25f65d68> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://dev.qaecy.com/ont#EntityMention> .\n
             <https://cue.qaecy.com/r/3715f1eb-bfa6-44b7-99ee-932f25f65d68> <https://dev.qaecy.com/ont#value> \"John Doe\" .\n
             <https://cue.qaecy.com/r/3715f1eb-bfa6-44b7-99ee-932f25f65d68> <https://dev.qaecy.com/ont#hasEntityCategory> <https://dev.qaecy.com/enum#Person> ."
-      
+    SearchResults:
+      description: List of search results from both graph and vector sources
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      nullable: true
+                      description: The id of the fragment/document of the search result
+                    context:
+                      type: string
+                      nullable: true
+                      description: The document id (context) associated with the result
+                    content:
+                      type: string
+                      nullable: true
+                      description: The content of the search result
+                    relevance:
+                      type: number
+                      format: float
+                      nullable: true
+                      description: Relevance score of the result
+                    name:
+                      type: string
+                      nullable: true
+                      description: Name or title of the result
+                    tags:
+                      type: string
+                      nullable: true
+                      description: Comma-separated tags associated with the result
+                    summary:
+                      type: string
+                      nullable: true
+                      description: The summary or brief description of the context document
+                    mime:
+                      type: string
+                      nullable: true
+                      description: MIME type of the content
+                    size:
+                      type: string
+                      nullable: true
+                      description: Size of the context document
+                    source:
+                      type: array
+                      items:
+                        type: string
+                        enum: [graph, vector]
+                      description: List of sources where the result originated
   securitySchemes:
     QAECYAuth:
       type: http
