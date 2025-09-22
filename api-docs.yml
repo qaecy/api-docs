@@ -211,6 +211,49 @@ paths:
       responses:
         '200':
           $ref: "#/components/responses/SPARQL"
+  /data-views/document/{md5}:
+    get:
+      summary: Get document data including IRI, summary, subject, and content categories
+      tags:
+        - Data views
+      operationId: DataViewsDocument
+      parameters:
+        - name: md5
+          in: path
+          description: MD5 hash of the document
+          required: true
+          schema:
+            type: string
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  IRI:
+                    type: string
+                    description: Document IRI
+                  summary:
+                    type: string
+                    description: Document summary
+                  subject:
+                    type: string
+                    description: Document subject
+                  contentCategories:
+                    type: array
+                    items:
+                      type: string
+                    description: Content categories
+                required:
+                  - IRI
   /data-views/resource/{resourceID}:
     get:
       summary: Exposes a view of the particular resource (file location/content, fragment, entity). The default response mime type is JSON-LD but the endpoint supports content negotiation by setting the Accept header.
@@ -530,6 +573,10 @@ components:
             <https://cue.qaecy.com/r/3715f1eb-bfa6-44b7-99ee-932f25f65d68> <https://dev.qaecy.com/ont#hasEntityCategory> <https://dev.qaecy.com/enum#Person> ."
       
   securitySchemes:
+    CueApiKey:
+      type: apiKey
+      in: header
+      name: cue-api-key
     QAECYAuth:
       type: http
       scheme: bearer
