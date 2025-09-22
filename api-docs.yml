@@ -21,6 +21,7 @@ servers:
   - url: https://accessors-api-gateway-ueyeemwf2a-oa.a.run.app
     description: Production
 security:
+  - CueApiKey: []
   - QAECYAuth: []
 paths:
   /blob/upload:
