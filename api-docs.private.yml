@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Cue APIs
-  description: Handles data uploading and knowledge-base access requests to Cue.
+  description: Handles all ingress and egress of data to/from the QAECY Cue pipelines + calls to the agent.
   version: "1.0"
   contact: {}
 tags: 
@@ -9,6 +9,8 @@ tags:
     description: Handles ingress of raw documents
   - name: Assistant
     description: Handles interactions with the Cue assistant
+  - name: Knowledge
+    description: Handles writing and deleting of knowledge to the databases
   - name: Triplestore
     description: Exposes the project triplestore endpoints for querying, SHACL checks etc.
   - name: Data views
@@ -54,10 +56,47 @@ paths:
               example:
                 message: "report.pdf was successfully uploaded to project ffd5c559-1821-4e8c-a956-08f61f352e3b!"
                 uuid: 6ad3e777-87e8-56e1-8f37-d7fcf07e3f50
-  /assistant/search:
+  /assistant/wake-up:
+    get:
+      summary: Trigger the service to wake up.
+      tags:
+        - Assistant
+      operationId: AssistantWakeUp
+      responses:
+        "200":
+          description: ""
+  /assistant/warm-up:
     post:
-      operationId: AssistantSearch
-      summary: Search the knowledge base of the requested project.
+      summary: Preload the knowledge base for the requested project.
+      tags:
+        - Assistant
+      parameters:
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                projectId:
+                  type: string
+                  description: The project ID (will soon be removed and read from headers)
+              required:
+                - projectId
+      operationId: AssistantWarmUp
+      responses:
+        "200":
+          description: ""
+  /assistant/qa-text:
+    post:
+      operationId: AssistantQAText
+      summary: Performs QA against the knowledge base.
       tags:
         - Assistant
       parameters:
@@ -72,36 +111,14 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/SearchDto"
+              $ref: "#/components/schemas/ChatDto"
       responses:
         '200':
           description: "The response is a streamed json file, including the sources."
-  /assistant/lookup:
+  /assistant/graphdb/query:
     post:
-      operationId: AssistantLookUp
-      summary: Returns an exhaustive list of documents based on the provided constrains.
-      tags:
-        - Assistant
-      parameters:
-        - name: x-project-id
-          in: header
-          description: Project ID
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              $ref: "#/components/schemas/LookUpDto"
-      responses:
-        '200':
-          description: ""
-  /assistant/utils/related-documents:
-    post:
-      operationId: AssistantUtilsRelatedDocs
-      summary: Returns a list of similar documents to the provided one.
+      operationId: AssistantGraphDBQuery
+      summary: Performs a SPARQL query to the graph database.
       tags:
         - Assistant
       parameters:
@@ -116,25 +133,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                projectId:
-                  type: string
-                  description: The project id (will soon be removed and read from headers).
-                identifier:
-                  type: string
-                  description: The uuid of the source document.
-                k:
-                  type: integer
-                  description: Max amount of similar documents to be returned.
-                  default: 5
+              $ref: "#/components/schemas/QueryAssDto"
       responses:
         '200':
           description: ""
-  /assistant/utils/top-entities:
+  /assistant/vectordb/search:
     post:
-      operationId: AssistantUtilsTopEntities
-      summary: Returns a list of the most frequent entities in the project.
+      operationId: AssistantVectorDBSearch
+      summary: Performs search against the vector database.
       tags:
         - Assistant
       parameters:
@@ -149,24 +155,25 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                projectId:
-                  type: string
-                  description: The project id (will soon be removed and read from headers).
-                k:
-                  type: integer
-                  description: Amount of entities to be returned.
-                  default: 20
+              $ref: "#/components/schemas/VectorSearchDto"
       responses:
         '200':
           description: ""
-  /assistant/utils/project-summary:
-    post:
-      operationId: AssistantUtilsProjectSummary
-      summary: Returns a generated summary of the contents of the given project.
+  /knowledge/wake-up:
+    get:
+      summary: Trigger the service to wake up.
       tags:
-        - Assistant
+        - Knowledge
+      operationId: KnowledgeWakeUp
+      responses:
+        "200":
+          description: ""
+  /knowledge/remove-documents:
+    post:
+      summary: Remove documents and/or extracted information.
+      tags:
+        - Knowledge
+      operationId: KnowledgeRemoveDocuments
       parameters:
         - name: x-project-id
           in: header
@@ -179,13 +186,9 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                projectId:
-                  type: string
-                  description: The project id (will soon be removed and read from headers)
+              $ref: "#/components/schemas/RemoveDocumentsDto"
       responses:
-        '200':
+        "200":
           description: ""
   /triplestore/query:
     post:
@@ -209,49 +212,49 @@ paths:
       responses:
         '200':
           $ref: "#/components/responses/SPARQL"
-  # /data-views/document/{md5}:
-  #   get:
-  #     summary: Get document data including IRI, summary, subject, and content categories
-  #     tags:
-  #       - Data views
-  #     operationId: DataViewsDocument
-  #     parameters:
-  #       - name: md5
-  #         in: path
-  #         description: MD5 hash of the document
-  #         required: true
-  #         schema:
-  #           type: string
-  #       - name: x-project-id
-  #         in: header
-  #         description: Project ID
-  #         required: true
-  #         schema:
-  #           type: string
-  #     responses:
-  #       '200':
-  #         description: Document data
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: object
-  #               properties:
-  #                 IRI:
-  #                   type: string
-  #                   description: Document IRI
-  #                 summary:
-  #                   type: string
-  #                   description: Document summary
-  #                 subject:
-  #                   type: string
-  #                   description: Document subject
-  #                 contentCategories:
-  #                   type: array
-  #                   items:
-  #                     type: string
-  #                   description: Content categories
-  #               required:
-  #                 - IRI
+  /data-views/document/{md5}:
+    get:
+      summary: Get document data including IRI, summary, subject, and content categories
+      tags:
+        - Data views
+      operationId: DataViewsDocument
+      parameters:
+        - name: md5
+          in: path
+          description: MD5 hash of the document
+          required: true
+          schema:
+            type: string
+        - name: x-project-id
+          in: header
+          description: Project ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  IRI:
+                    type: string
+                    description: Document IRI
+                  summary:
+                    type: string
+                    description: Document summary
+                  subject:
+                    type: string
+                    description: Document subject
+                  contentCategories:
+                    type: array
+                    items:
+                      type: string
+                    description: Content categories
+                required:
+                  - IRI
   /data-views/resource/{resourceID}:
     get:
       summary: Exposes a view of the particular resource (file location/content, fragment, entity). The default response mime type is JSON-LD but the endpoint supports content negotiation by setting the Accept header.
@@ -328,10 +331,22 @@ components:
           type: string
           default: ""
           description: Any relevant custom metadata from the host system formatted as stringified JSON
+        skipLoading:
+          type: boolean
+          default: false
+          description: Whether the file should be invisible to the loading events that would normally be triggered by it
+        skipProcessing:
+          type: boolean
+          default: false
+          description: Whether the file should be invisible to the processing events that would normally be triggered by it
+        providerId:
+          type: string
+          default: ""
+          description: Necessary to distinguish duplicate files uploaded from different document systems. Reflected in file location UUIDs. Default value is an empty string.
       required:
         - file
         - filename
-    SearchDto:
+    VectorSearchDto:
       type: object
       properties:
         question:
@@ -340,33 +355,54 @@ components:
         projectId:
           type: string
           description: The project id (will soon be removed and read from headers)
+        target:
+          type: string
+          description: The target collection, out of the currently supported ones (page_summaries, document_summaries)
+          default: page_summaries
         limit:
           type: number
-          description: Number of the search results included in the retrieval
+          description: Number of results included
           default: 20
+        queryType:
+          type: string
+          description: Perform vector-only (vector) or hybrid (hybrid) search which includes fts
+          default: vector
         identifiers:
           type: array
           items:
             type: string
           description: The identifiers of the documents that the search should be constrained to
-        useFts:
-          type: boolean
-          description: Whether to use full-text search index or not
-          default: true
-        useVector:
-          type: boolean
-          description: Whether to use vector index or not
-          default: true
-        context:
-          type: boolean
-          description: Whether to return textual information for the results or only ids.
-          default: true
-        returnDocuments:
-          type: boolean
-          description: Whether to aggregate search hits by document container.
-          default: true     
       required:
         - question
+        - projectId
+    ChatDto:
+      type: object
+      properties:
+        prompt:
+          type: string
+          description: Chat prompt
+        projectId:
+          type: string
+          description: The project id (will soon be removed and read from headers)
+        target:
+          type: string
+          description: The target vector collection, out of the currently supported ones (page_summaries, document_summaries)
+          default: page_summaries
+        limit:
+          type: number
+          description: Number of the vector results included in the retrieval
+          default: 20
+        queryType:
+          type: string
+          description: Perform vector-only (vector) or hybrid (hybrid) search which includes fts
+          default: vector
+        identifiers:
+          type: array
+          items:
+            type: string
+          description: The identifiers of the documents that the search should be constrained to
+      required:
+        - prompt
         - projectId
     QueryDto:
       type: object
@@ -376,44 +412,64 @@ components:
           description: The query
       required:
         - query
-    LookUpDto:
+    QueryAssDto:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The query
+        projectId:
+          type: string
+          description: The project id (will soon be removed and read from headers)
+        identifiers:
+          type: array
+          items:
+            type: string
+          description: The identifiers of the documents that the query should be constrained to
+      required:
+        - query
+        - projectId
+    RemoveDocumentsDto:
       type: object
       properties:
         projectId:
           type: string
           description: The project id (will soon be removed and read from headers)
-        filters:
+        fileNames:
           type: array
-          items:
-            $ref: '#/components/schemas/LookUpFilterDto'
-          description: The identifiers of the documents that the query should be constrained to
-        context:
-          type: boolean
-          description: Whether to return textual information for the results or only ids.
-          default: false
-      required:
-        - filters
-        - projectId
-    LookUpFilterDto:
-      type: object
-      properties:
-        type: 
-          type: string
-          description: Filter against one of the provided categories.
-          enum:
-          - content
-          - entity
-          - mime
-        included:
-          type: array
-          description: A list of the full IRIs of the included objects.
           items:
             type: string
-        excluded:
+          description: Array containing the list of filenames to be deleted, prefixed with their full path
+          default: []
+        blobNames:
           type: array
-          description: A list of the full IRIs of the excluded objects.
           items:
-            type: string     
+            type: string
+          description: Array containing the list of blobs to be deleted, prefixed with the projectId
+          default: []
+        removeGraphs:
+          type: boolean
+          description: Remove all the associated (also derived) information from the knowledge graph
+          default: true
+        removeVectors:
+          type: boolean
+          description: Remove all the associated vector embeddings from the vector store
+          default: true
+        removeRaw:
+          type: boolean
+          description: Remove the raw blob files
+          default: true
+        removeProcessed:
+          type: boolean
+          description: Remove all the processed / derivative files that where produced from the files
+          default: true
+        deleteAll:
+          type: boolean
+          description: Bypass other settings and delete all raw and processed files as well as knowledge graph and vector store data
+          default: false
+      required:
+        - projectId
+        - fileNames
   responses:
     SPARQL:
       description: SPARQL query results
